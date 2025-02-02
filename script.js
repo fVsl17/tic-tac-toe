@@ -6,10 +6,12 @@ window.addEventListener("load", () => {
     setTimeout(function () {document.querySelector(".play-button-container").classList.add("show");}, 3000);
 });
 
-const createPlayer = function (name, score) {
+const createPlayer = function (name) {
     const playerName = name;
-    const playerScore = score;
-    return {playerName, playerScore};
+    const playerScore = 0;
+    const updateScore = () => playerScore++;
+    const getScore = function () {return playerScore};
+    return {playerName, getScore, updateScore};
 }
 
 const gameBoard = (function() {
@@ -51,7 +53,14 @@ const gameBoard = (function() {
                     return 0;
         return 1;
     };
-    return {checkWin, changeGrid, checkDraw};
+    const winner = function (player) {
+            player.updateScore();
+            document.querySelector(".notifier").textContent = `${player.name} wins!`;
+    };
+    const draw = function () {
+        document.querySelector(".notifier").textContent = "Draw! No one wins.";
+    }
+    return {checkWin, changeGrid, checkDraw, winner, draw};
 })();
 
 
@@ -83,7 +92,7 @@ const displayControl = (function() {
         }, 3000);
     }
     let turn = 'X';
-    function makeGridPlayable () {
+    function makeGridPlayable (player1, player2) {
         gridGame.childNodes.forEach((el, i)=>{
             el.addEventListener("click", () => {
                 let pos1, pos2;
@@ -105,12 +114,23 @@ const displayControl = (function() {
                     pos1 = 2, pos2 = 1;
                 if (i === 8)
                     pos1 = 2, pos2 = 2;
-                if (gameBoard.changeGrid(pos1, pos2) === 1){
+                const x = gameBoard.changeGrid(pos1, pos2, turn);
+                if (x === 1){
                 el.textContent = turn;
                 if (turn === 'X')
                     turn = 'O';
                 else
                     turn = 'X';
+                }
+                if (gameBoard.checkWin() === 'X'){
+                    gameBoard.winner(player1);
+                    turn = '';
+                } else if (gameBoard.checkWin() === 'O'){
+                    gameBoard.winner(player2);
+                    turn = '';
+                } else if (gameBoard.checkDraw() === 1){
+                    gameBoard.draw();
+                    turn = '';
                 }
             });
         });
@@ -128,20 +148,20 @@ const game = (function() {
     }
     let player1, player2;
     function secondButton () {
-        let first, second;
         displayControl.namesSubmitButton.addEventListener("click", () => {
-            first = document.getElementById("player-1-name").value;
-            second = document.getElementById("player-2-name").value;
-            player1 = createPlayer(first, 0);
-            player2 = createPlayer(second, 0);
+            player1 = createPlayer(document.getElementById("player-1-name").value);
+            player2 = createPlayer(document.getElementById("player-2-name").value);
             displayControl.hideNameInput();
+            console.log(player1.name, player2.name);
+            document.querySelector(".player-1").textContent = player1.name;
+            document.querySelector(".player-2").textContent = player2.name;
         });
     }
 
     function play(){
         firstButton();
         secondButton();
-        displayControl.makeGridPlayable();
+        displayControl.makeGridPlayable(player1, player2);
     }
     return {play};
 })();
